@@ -29,7 +29,6 @@ jobs:
           unzip -q /tmp/worldforge.zip -d work
           test -f work/server/package.json
           test -f work/android/app/build.gradle
-          echo "Worldforge source archive verified and unpacked."
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -57,16 +56,26 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Confirm Android SDK
+      - name: Prepare Android SDK 36
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --version
-          sdkmanager --list_installed | grep -E 'platforms;android-36|build-tools;36' || true
-          if [ ! -d "$ANDROID_HOME/platforms/android-36" ]; then
-            yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -perm -111 2>/dev/null | head -n 1 || true)"
           fi
+          if [ -z "$SDKMANAGER" ] || [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager not found under $ANDROID_HOME" >&2
+            find "$ANDROID_HOME" -maxdepth 4 -type f -name sdkmanager -print || true
+            exit 1
+          fi
+          echo "Using $SDKMANAGER"
+          "$SDKMANAGER" --version
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          test -d "$ANDROID_HOME/platforms/android-36"
+          test -d "$ANDROID_HOME/build-tools/36.0.0"
 
       - name: Build debug APK
         working-directory: work/android
