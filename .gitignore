@@ -1,0 +1,16 @@
+# Server runtime
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
+
+# Android
+.gradle/
+**/build/
+android/local.properties
+*.apk
+*.aab
+
+# OS/editor
+.DS_Store
+.idea/
+*.iml
