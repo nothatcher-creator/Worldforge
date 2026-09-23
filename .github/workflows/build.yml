@@ -30,6 +30,14 @@ jobs:
           test -f work/server/package.json
           test -f work/android/app/build.gradle
 
+      - name: Apply physical-phone server UX patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch -p1 -d work < .ci/v042-phone-server.patch
+          grep -q "versionName '0.4.2'" work/android/app/build.gradle
+          grep -q "TEST SERVER CONNECTION" work/android/app/src/main/java/com/worldforge/app/MainActivity.java
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
