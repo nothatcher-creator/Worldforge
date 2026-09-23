@@ -1,0 +1,56 @@
+--- a/android/app/src/main/java/com/worldforge/app/MainActivity.java
++++ b/android/app/src/main/java/com/worldforge/app/MainActivity.java
+@@ -22,7 +22,7 @@
+     private FantasyMapView map; private TextView status, charLine; private LinearLayout sheet; private JSONArray currentSpawns=new JSONArray(), currentPlayers=new JSONArray(), currentWorldPlaces=new JSONArray();
+     private JSONObject bootstrap;
+ 
+-    @Override public void onCreate(Bundle b){super.onCreate(b);prefs=getSharedPreferences("worldforge",MODE_PRIVATE);String base=prefs.getString("base_url","http://10.0.2.2:8787");token=prefs.getString("token",null);api=new ApiClient(base,token);if(token==null)showLogin();else checkSession();}
++    @Override public void onCreate(Bundle b){super.onCreate(b);prefs=getSharedPreferences("worldforge",MODE_PRIVATE);String base=prefs.getString("base_url",defaultServerUrl());if(!looksLikeEmulator()&&isEmulatorOnlyAddress(base)){base="";prefs.edit().remove("base_url").apply();}token=prefs.getString("token",null);api=new ApiClient(base,token);if(token==null)showLogin();else checkSession();}
+     @Override protected void onDestroy(){super.onDestroy();if(ws!=null)ws.close();}
+ 
+     private void checkSession(){api.request("/api/me","GET",null,(j,e)->ui(()->{if(e!=null){clearAuth();showLogin();return;}role=j.optJSONObject("user").optString("role","PLAYER");if(j.isNull("character"))showCharacterCreation();else startLocation();}));}
+@@ -34,10 +34,13 @@
+         EditText server=input("Server URL",api.getBaseUrl(),false);root.addView(server,lpMatchWrap(0,0,0,10));
+         EditText user=input("Username","",false);root.addView(user,lpMatchWrap(0,0,0,10));
+         EditText pass=input("Password","",true);root.addView(pass,lpMatchWrap(0,0,0,18));
+-        TextView hint=label("Physical phone: use your server computer's LAN URL, for example http://192.168.x.x:8787. Android emulator: http://10.0.2.2:8787.",13,false);hint.setTextColor(Color.LTGRAY);root.addView(hint,lpMatchWrap(0,0,0,18));
+-        LinearLayout buttons=row();Button login=button("LOG IN"),register=button("CREATE ACCOUNT");buttons.addView(login,new LinearLayout.LayoutParams(0,dp(52),1));buttons.addView(register,new LinearLayout.LayoutParams(0,dp(52),1));root.addView(buttons,lpMatchWrap());
++        String deviceHint=looksLikeEmulator()?"Emulator detected. The local development server can use http://10.0.2.2:8787.":"Physical phone detected. Enter a reachable server URL, for example http://192.168.1.25:8787 while your PC and phone are on the same Wi-Fi. 10.0.2.2 only works in the Android emulator.";
++        TextView hint=label(deviceHint,13,false);hint.setTextColor(Color.LTGRAY);root.addView(hint,lpMatchWrap(0,0,0,12));
++        Button test=smallButton("TEST SERVER CONNECTION");root.addView(test,new LinearLayout.LayoutParams(-1,dp(46)));
++        LinearLayout buttons=row();Button login=button("LOG IN"),register=button("CREATE ACCOUNT");buttons.addView(login,new LinearLayout.LayoutParams(0,dp(52),1));buttons.addView(register,new LinearLayout.LayoutParams(0,dp(52),1));root.addView(buttons,lpMatchWrap(0,10,0,0));
+         TextView msg=label("",14,false);msg.setTextColor(Color.rgb(255,160,140));root.addView(msg,lpMatchWrap(0,16,0,0));
+-        View.OnClickListener action=v->{String base=server.getText().toString().trim();api.setBaseUrl(base);prefs.edit().putString("base_url",base).apply();JSONObject body=new JSONObject();try{body.put("username",user.getText().toString().trim());body.put("password",pass.getText().toString());}catch(Exception ignored){}String path=v==register?"/api/register":"/api/login";msg.setText("Connecting…");api.request(path,"POST",body,(j,e)->ui(()->{if(e!=null){msg.setText(e.getMessage());return;}token=j.optString("token");api.setToken(token);role=j.optJSONObject("user").optString("role","PLAYER");prefs.edit().putString("token",token).apply();if(j.optBoolean("hasCharacter",false))startLocation();else showCharacterCreation();}));};
++        test.setOnClickListener(v->{String base=normalizeServerUrl(server.getText().toString());server.setText(base);if(!validateServerForDevice(base,msg))return;api.setBaseUrl(base);prefs.edit().putString("base_url",base).apply();msg.setText("Testing server…");api.request("/health","GET",null,(j,e)->ui(()->{if(e!=null){msg.setText("Server unreachable: "+friendlyConnectionError(e));return;}msg.setTextColor(Color.rgb(150,230,160));msg.setText("Server online • content revision "+j.optInt("revision",0));}));});
++        View.OnClickListener action=v->{String base=normalizeServerUrl(server.getText().toString());server.setText(base);msg.setTextColor(Color.rgb(255,160,140));if(!validateServerForDevice(base,msg))return;api.setBaseUrl(base);prefs.edit().putString("base_url",base).apply();JSONObject body=new JSONObject();try{body.put("username",user.getText().toString().trim());body.put("password",pass.getText().toString());}catch(Exception ignored){}String path=v==register?"/api/register":"/api/login";msg.setText("Connecting…");api.request(path,"POST",body,(j,e)->ui(()->{if(e!=null){msg.setText(friendlyConnectionError(e));return;}token=j.optString("token");api.setToken(token);role=j.optJSONObject("user").optString("role","PLAYER");prefs.edit().putString("token",token).apply();if(j.optBoolean("hasCharacter",false))startLocation();else showCharacterCreation();}));};
+         login.setOnClickListener(action);register.setOnClickListener(action);setContentView(root);
+     }
+ 
+@@ -159,6 +162,14 @@
+ 
+     private void showAdmin(){openSheet("OWNER • LIVE CONTENT");if(!role.equals("OWNER")&&!role.equals("ADMIN")){addSheetText("This account does not have content publishing permission.",14,false);return;}addSheetText("Publish a new item definition. Connected clients receive a content-revision event and reload it without a new APK.",14,false);EditText id=input("Content ID (example: ash_sabre)","",false),name=input("Display name","",false),slot=input("Slot (weapon/chest)","weapon",false),power=input("Base power","6",false);power.setInputType(InputType.TYPE_CLASS_NUMBER);sheet.addView(id);sheet.addView(name);sheet.addView(slot);sheet.addView(power);Button publish=button("PUBLISH LIVE ITEM");sheet.addView(publish,new LinearLayout.LayoutParams(-1,dp(52)));publish.setOnClickListener(v->{JSONObject b=new JSONObject();try{b.put("id",id.getText().toString());b.put("name",name.getText().toString());b.put("slot",slot.getText().toString());b.put("basePower",Integer.parseInt(power.getText().toString()));b.put("maxAffixes",4);b.put("reason","Published from Android owner panel");}catch(Exception ignored){}api.request("/api/admin/content/item","POST",b,(j,e)->ui(()->{if(e!=null)toast(e.getMessage());else{toast("Published at content revision "+j.optInt("revision"));loadWorld();}}));});}
+ 
++
++    private boolean looksLikeEmulator(){String fp=Build.FINGERPRINT==null?"":Build.FINGERPRINT.toLowerCase(Locale.US);String model=Build.MODEL==null?"":Build.MODEL.toLowerCase(Locale.US);String product=Build.PRODUCT==null?"":Build.PRODUCT.toLowerCase(Locale.US);return fp.contains("generic")||fp.contains("emulator")||model.contains("sdk_gphone")||model.contains("emulator")||product.contains("sdk");}
++    private String defaultServerUrl(){return looksLikeEmulator()?"http://10.0.2.2:8787":"";}
++    private boolean isEmulatorOnlyAddress(String s){if(s==null)return false;String v=s.toLowerCase(Locale.US);return v.contains("10.0.2.2")||v.contains("127.0.0.1")||v.contains("localhost");}
++    private String normalizeServerUrl(String raw){String v=raw==null?"":raw.trim();while(v.endsWith("/"))v=v.substring(0,v.length()-1);if(!v.isEmpty()&&!v.contains("://"))v="http://"+v;return v;}
++    private boolean validateServerForDevice(String base,TextView msg){if(base==null||base.isEmpty()){msg.setText("Enter the Worldforge server address first.");return false;}if(!looksLikeEmulator()&&isEmulatorOnlyAddress(base)){msg.setText("That address is only local to an emulator/phone. On your S25 use your server computer's LAN IP, such as http://192.168.1.25:8787, or a hosted HTTPS Worldforge server.");return false;}return true;}
++    private String friendlyConnectionError(Exception e){String m=e==null?"Unknown connection error":String.valueOf(e.getMessage());if(!looksLikeEmulator()&&m.contains("10.0.2.2"))return "10.0.2.2 is emulator-only. Use the computer/server LAN IP or a hosted server URL.";if(m.toLowerCase(Locale.US).contains("failed to connect")||m.toLowerCase(Locale.US).contains("timed out")||m.toLowerCase(Locale.US).contains("timeout"))return "Could not reach the Worldforge server. Make sure it is running and that this phone can reach the server address.";return m;}
++
+     private void clearAuth(){token=null;api.setToken(null);prefs.edit().remove("token").apply();}
+     private void ui(Runnable r){main.post(r);} private void toast(String s){Toast.makeText(this,s,Toast.LENGTH_SHORT).show();}
+     private LinearLayout column(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.VERTICAL);return v;}private LinearLayout row(){LinearLayout v=column();v.setOrientation(LinearLayout.HORIZONTAL);return v;}
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -8,8 +8,8 @@
+         applicationId 'com.worldforge.app'
+         minSdk 26
+         targetSdk 36
+-        versionCode 4
+-        versionName '0.4.0'
++        versionCode 5
++        versionName '0.4.2'
+     }
+ 
+     buildTypes {
