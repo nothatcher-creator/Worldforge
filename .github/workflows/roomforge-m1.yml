@@ -1,4 +1,4 @@
-name: RoomForge M3 CI
+name: RoomForge M4 CI
 on:
   pull_request:
     branches: [ main ]
@@ -20,13 +20,30 @@ jobs:
           set -euo pipefail
           cat roomforge_parts/part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/roomforge.zip
           echo "f1a0b0af99ffe1543322580e00c5cc332a5eb3fec7d7731e311db160f24aea2e  /tmp/roomforge.zip" | sha256sum -c -
-          rm -rf /tmp/roomforge-src
-          mkdir -p /tmp/roomforge-src
+          rm -rf /tmp/roomforge-src /tmp/roomforge-m4-overlay
+          mkdir -p /tmp/roomforge-src /tmp/roomforge-m4-overlay
           unzip -q /tmp/roomforge.zip -d /tmp/roomforge-src
           test -f /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
           cp -R roomforge_m2_overlay/. /tmp/roomforge-src/RoomForgeGameify/
           cp -R roomforge_m3_overlay/. /tmp/roomforge-src/RoomForgeGameify/
-          grep -q 'versionName = "0.3.0-m3"' /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
+
+          tr -d '\r\n' < roomforge_m4_overlay.zip.b64 | base64 --decode > /tmp/roomforge-m4-overlay.zip
+          echo "12f0e4c6673ba99b1f467c2b2bee2d98d089daeaca96403d38d04cd06c259e04  /tmp/roomforge-m4-overlay.zip" | sha256sum -c -
+          unzip -q /tmp/roomforge-m4-overlay.zip -d /tmp/roomforge-m4-overlay
+          cp -R /tmp/roomforge-m4-overlay/roomforge_m4_overlay/. /tmp/roomforge-src/RoomForgeGameify/
+          grep -q 'versionName = "0.4.0-m4"' /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
+
+      - name: Download on-device detector model
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASSETS=/tmp/roomforge-src/RoomForgeGameify/app/src/main/assets
+          mkdir -p "$ASSETS"
+          curl -fL --retry 3 --retry-delay 2 \
+            -o "$ASSETS/efficientdet_lite0.tflite" \
+            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite"
+          test -s "$ASSETS/efficientdet_lite0.tflite"
+          sha256sum "$ASSETS/efficientdet_lite0.tflite"
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -67,13 +84,21 @@ jobs:
           $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose "$APK"
           $ANDROID_HOME/build-tools/36.0.0/aapt dump badging "$APK" | tee /tmp/apk-badging.txt
           grep -q "package: name='com.roomforge.gameify'" /tmp/apk-badging.txt
-          grep -q "versionName='0.3.0-m3'" /tmp/apk-badging.txt
+          grep -q "versionName='0.4.0-m4'" /tmp/apk-badging.txt
           grep -q "application-label:'RoomForge'" /tmp/apk-badging.txt
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: roomforge-m3-debug-apk
+          name: roomforge-m4-debug-apk
           path: /tmp/roomforge-src/RoomForgeGameify/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload complete source
+        uses: actions/upload-artifact@v4
+        with:
+          name: roomforge-m4-source
+          path: /tmp/roomforge-src/RoomForgeGameify
           if-no-files-found: error
           retention-days: 7
