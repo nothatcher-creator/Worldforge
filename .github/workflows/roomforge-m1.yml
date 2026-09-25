@@ -1,4 +1,4 @@
-name: RoomForge M7 CI
+name: RoomForge M8 CI
 on:
   pull_request:
     branches: [ main ]
@@ -20,8 +20,8 @@ jobs:
           set -euo pipefail
           cat roomforge_parts/part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/roomforge.zip
           echo "f1a0b0af99ffe1543322580e00c5cc332a5eb3fec7d7731e311db160f24aea2e  /tmp/roomforge.zip" | sha256sum -c -
-          rm -rf /tmp/roomforge-src /tmp/roomforge-m4-overlay /tmp/roomforge-m5-overlay /tmp/roomforge-m6-overlay /tmp/roomforge-m7-overlay
-          mkdir -p /tmp/roomforge-src /tmp/roomforge-m4-overlay /tmp/roomforge-m5-overlay /tmp/roomforge-m6-overlay /tmp/roomforge-m7-overlay
+          rm -rf /tmp/roomforge-src /tmp/roomforge-m4-overlay /tmp/roomforge-m5-overlay /tmp/roomforge-m6-overlay /tmp/roomforge-m7-overlay /tmp/roomforge-m8-overlay
+          mkdir -p /tmp/roomforge-src /tmp/roomforge-m4-overlay /tmp/roomforge-m5-overlay /tmp/roomforge-m6-overlay /tmp/roomforge-m7-overlay /tmp/roomforge-m8-overlay
           unzip -q /tmp/roomforge.zip -d /tmp/roomforge-src
           test -f /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
           cp -R roomforge_m2_overlay/. /tmp/roomforge-src/RoomForgeGameify/
@@ -46,7 +46,12 @@ jobs:
           echo "0f0318fa42da349120f81d2d4fd940e63be86fe4bcfd3bff47e3efa0f604fc4f  /tmp/roomforge-m7-overlay.zip" | sha256sum -c -
           unzip -q /tmp/roomforge-m7-overlay.zip -d /tmp/roomforge-m7-overlay
           cp -R /tmp/roomforge-m7-overlay/roomforge_m7_overlay/. /tmp/roomforge-src/RoomForgeGameify/
-          grep -q 'versionName = "0.7.0-m7"' /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
+
+          cat roomforge_m8_parts/part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/roomforge-m8-overlay.zip
+          echo "4d889cd7c100ad2371480b2f72a51c74fcb5461fbb351b485a47ecb30dbad040  /tmp/roomforge-m8-overlay.zip" | sha256sum -c -
+          unzip -q /tmp/roomforge-m8-overlay.zip -d /tmp/roomforge-m8-overlay
+          cp -R /tmp/roomforge-m8-overlay/roomforge_m8_overlay/. /tmp/roomforge-src/RoomForgeGameify/
+          grep -q 'versionName = "0.8.0-m8"' /tmp/roomforge-src/RoomForgeGameify/app/build.gradle.kts
 
       - name: Download on-device detector model
         shell: bash
@@ -54,9 +59,7 @@ jobs:
           set -euo pipefail
           ASSETS=/tmp/roomforge-src/RoomForgeGameify/app/src/main/assets
           mkdir -p "$ASSETS"
-          curl -fL --retry 3 --retry-delay 2 \
-            -o "$ASSETS/efficientdet_lite0.tflite" \
-            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite"
+          curl -fL --retry 3 --retry-delay 2             -o "$ASSETS/efficientdet_lite0.tflite"             "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite"
           test -s "$ASSETS/efficientdet_lite0.tflite"
           sha256sum "$ASSETS/efficientdet_lite0.tflite"
 
@@ -68,7 +71,18 @@ jobs:
           python3 "$ROOT/tools/generate_lowpoly_assets.py" "$ROOT/app/src/main/assets/models"
           test -s "$ROOT/app/src/main/assets/models/manifest.json"
           test -s "$ROOT/app/src/main/assets/models/cartoon_couch_01.glb"
-          test "$(find "$ROOT/app/src/main/assets/models" -name '*.glb' | wc -l)" -eq 11
+          test -s "$ROOT/app/src/main/assets/models/cartoon_couch_02.glb"
+          test "$(find "$ROOT/app/src/main/assets/models" -name '*.glb' | wc -l)" -eq 22
+          python3 - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          p=Path("/tmp/roomforge-src/RoomForgeGameify/app/src/main/assets/models/manifest.json")
+          data=json.loads(p.read_text())
+          counts=Counter(a["category"] for a in data["assets"])
+          assert len(data["assets"]) == 22
+          assert all(v == 2 for v in counts.values()), counts
+          PY
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -109,16 +123,17 @@ jobs:
           $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose "$APK"
           $ANDROID_HOME/build-tools/36.0.0/aapt dump badging "$APK" | tee /tmp/apk-badging.txt
           grep -q "package: name='com.roomforge.gameify'" /tmp/apk-badging.txt
-          grep -q "versionName='0.7.0-m7'" /tmp/apk-badging.txt
+          grep -q "versionName='0.8.0-m8'" /tmp/apk-badging.txt
           grep -q "application-label:'RoomForge'" /tmp/apk-badging.txt
           unzip -l "$APK" | grep -q 'assets/models/manifest.json'
           unzip -l "$APK" | grep -q 'assets/models/cartoon_couch_01.glb'
-          test "$(unzip -l "$APK" | grep -c 'assets/models/.*\.glb')" -eq 11
+          unzip -l "$APK" | grep -q 'assets/models/cartoon_couch_02.glb'
+          test "$(unzip -l "$APK" | grep -c 'assets/models/.*\.glb')" -eq 22
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: roomforge-m7-debug-apk
+          name: roomforge-m8-debug-apk
           path: /tmp/roomforge-src/RoomForgeGameify/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
@@ -126,7 +141,7 @@ jobs:
       - name: Upload complete source
         uses: actions/upload-artifact@v4
         with:
-          name: roomforge-m7-source
+          name: roomforge-m8-source
           path: /tmp/roomforge-src/RoomForgeGameify
           if-no-files-found: error
           retention-days: 7
