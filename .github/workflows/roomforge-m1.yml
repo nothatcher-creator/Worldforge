@@ -72,6 +72,8 @@ jobs:
         run: |
           set -euo pipefail
           ROOT=/tmp/roomforge-src/RoomForgeGameify
+          echo "3ff8add379dafe1a97c79d97086051baa47659085b3b4c7745efe51ef4683585  roomforge_m8_asset_generator.py" | sha256sum -c -
+          cp roomforge_m8_asset_generator.py "$ROOT/tools/generate_lowpoly_assets.py"
           python3 "$ROOT/tools/generate_lowpoly_assets.py" "$ROOT/app/src/main/assets/models"
           test -s "$ROOT/app/src/main/assets/models/manifest.json"
           test -s "$ROOT/app/src/main/assets/models/cartoon_couch_01.glb"
