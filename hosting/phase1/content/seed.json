@@ -1,0 +1,34 @@
+{
+  "brand": {"default": {"title": "Worldforge", "subtitle": "A hidden world, wherever you are", "accent": "#D9AF64", "background": "#101D25", "surface": "#1D303A", "map_attribution": "© OpenStreetMap contributors · OpenFreeMap"}},
+  "assets": {"blade": {"id": "blade", "renderer": "blade"}, "tunic": {"id": "tunic", "renderer": "tunic"}, "charm": {"id": "charm", "renderer": "charm"}, "bramble": {"id": "bramble", "renderer": "creature"}, "silt": {"id": "silt", "renderer": "creature"}},
+  "abilities": {
+    "rill": {"id": "rill", "name": "Rill touch", "description": "A ripple deals damage and leaves Wet for five turns.", "effect": "wet", "power": 5, "cost": 1, "cooldown": 1, "icon_id": "water", "color": "#76CDE0"},
+    "arc": {"id": "arc", "name": "Sky thread", "description": "An arc deals 50% more damage to Wet enemies.", "effect": "arc", "power": 8, "cost": 2, "cooldown": 1, "icon_id": "arc", "color": "#D6ACF0"},
+    "ward": {"id": "ward", "name": "Shell ward", "description": "Absorb damage before the next enemy strike.", "effect": "guard", "power": 12, "cost": 1, "cooldown": 2, "icon_id": "shield", "color": "#E3BE75"},
+    "mend": {"id": "mend", "name": "Leaf mend", "description": "Recover health during the rotation.", "effect": "heal", "power": 15, "cost": 2, "cooldown": 2, "icon_id": "leaf", "color": "#8ECC9C"},
+    "strike": {"id": "strike", "name": "Lantern strike", "description": "A reliable attack without an energy cost.", "effect": "damage", "power": 7, "cost": 0, "cooldown": 0, "icon_id": "blade", "color": "#E5AD89"}
+  },
+  "affixes": {
+    "might": {"id": "might", "name": "of the ember", "stat": "attack", "min": 1, "max": 3},
+    "shell": {"id": "shell", "name": "of the shell", "stat": "defence", "min": 1, "max": 3},
+    "heart": {"id": "heart", "name": "of deep roots", "stat": "max_hp", "min": 3, "max": 9},
+    "bloom": {"id": "bloom", "name": "of the bloom", "stat": "healing", "min": 1, "max": 3}
+  },
+  "items": {
+    "cinder_blade": {"id": "cinder_blade", "name": "Cinder reed blade", "description": "Woven metal remembers a forge's warmth.", "slot": "weapon", "required_level": 1, "rarity": "uncommon", "base_stats": {"attack": 5}, "affix_count": 1, "icon_id": "blade"},
+    "mossweave": {"id": "mossweave", "name": "Mossweave coat", "description": "Soft layered fibres cushion a traveller.", "slot": "body", "required_level": 1, "rarity": "rare", "base_stats": {"defence": 3, "max_hp": 12}, "affix_count": 2, "icon_id": "tunic"},
+    "dew_charm": {"id": "dew_charm", "name": "Dewglass charm", "description": "A tiny glass seed catches the morning light.", "slot": "charm", "required_level": 1, "rarity": "epic", "base_stats": {"healing": 3, "max_hp": 8}, "affix_count": 3, "icon_id": "charm"}
+  },
+  "loot_tables": {"field": {"id": "field", "entries": [{"item_id": "cinder_blade", "weight": 60}, {"item_id": "mossweave", "weight": 30}, {"item_id": "dew_charm", "weight": 10}]}},
+  "enemies": {
+    "bramblekin": {"id": "bramblekin", "name": "Bramblekin", "description": "A wandering bundle of animated thorn and clay.", "base_hp": 42, "attack": 6, "difficulty": 1, "xp": 38, "gold": 12, "model_id": "bramble", "loot_table": "field"},
+    "siltling": {"id": "siltling", "name": "Silt lantern", "description": "A shy marshlight wrapped in river silt.", "base_hp": 48, "attack": 7, "difficulty": 1.1, "xp": 42, "gold": 14, "model_id": "silt", "loot_table": "field"}
+  },
+  "quests": {"camp_hunt": {"id": "camp_hunt", "name": "Lanterns in the bramble", "description": "Keep the local waycamp clear. Defeat any three nearby creatures; your party shares credit.", "type": "defeat", "count": 3, "minimum_level": 1, "reward_xp": 90, "reward_gold": 55, "npc_name": "Keeper Wren", "radius_m": 700}},
+  "professions": {"botany": {"id": "botany", "name": "Botany", "description": "Gather dewleaf from the local area. Ten skill XP and 1–3 leaves per gathering.", "resource_id": "dewleaf", "resource_name": "Dewleaf", "xp": 10, "cooldown_seconds": 20}},
+  "buildings": {"capital": {"id": "capital", "name": "Lanternstead", "description": "Your protected first capital.", "claim_cost": 30, "upgrade_cost": 50, "model_id": "camp"}},
+  "regions": {
+    "ca_nb_demo": {"id": "ca_nb_demo", "name": "Northern coastal reaches", "bounds": [44.6, -69.1, 48.1, -63.7], "note": "Approximate demo atlas bounds, not an administrative boundary"},
+    "fallback": {"id": "fallback", "name": "Uncharted reaches", "bounds": [-85, -180, 85, 180]}
+  }
+}

@@ -1,0 +1,12 @@
+.git
+.local
+android
+artifacts
+**/.venv
+**/__pycache__
+**/.pytest_cache
+*.db*
+.env
+*.jks
+backups
+server/tests

@@ -1,0 +1,17 @@
+{
+  "version": 8,
+  "name": "Replaceable fantasy atlas",
+  "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  "sources": {"atlas": {"type": "vector", "url": "https://tiles.openfreemap.org/planet", "attribution": "© OpenStreetMap contributors · OpenFreeMap"}},
+  "layers": [
+    {"id": "ground", "type": "background", "paint": {"background-color": "#30473F"}},
+    {"id": "woodland", "type": "fill", "source": "atlas", "source-layer": "landcover", "paint": {"fill-color": "#253F35", "fill-opacity": 0.8}},
+    {"id": "parks", "type": "fill", "source": "atlas", "source-layer": "park", "paint": {"fill-color": "#43654A", "fill-opacity": 0.65}},
+    {"id": "water", "type": "fill", "source": "atlas", "source-layer": "water", "paint": {"fill-color": "#275565"}},
+    {"id": "river", "type": "line", "source": "atlas", "source-layer": "waterway", "paint": {"line-color": "#367488", "line-width": 2}},
+    {"id": "paths-shadow", "type": "line", "source": "atlas", "source-layer": "transportation", "paint": {"line-color": "#22362F", "line-width": {"stops": [[10, 2], [16, 11]]}}},
+    {"id": "paths", "type": "line", "source": "atlas", "source-layer": "transportation", "paint": {"line-color": "#9A8964", "line-width": {"stops": [[10, 1], [16, 6]]}, "line-opacity": 0.75}},
+    {"id": "structures", "type": "fill-extrusion", "source": "atlas", "source-layer": "building", "minzoom": 14, "paint": {"fill-extrusion-color": "#8B8064", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 7], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.65}},
+    {"id": "places", "type": "symbol", "source": "atlas", "source-layer": "place", "layout": {"text-field": "{name}", "text-font": ["Noto Sans Regular"], "text-size": 13, "text-max-width": 8}, "paint": {"text-color": "#E7DEC3", "text-halo-color": "#20352E", "text-halo-width": 2}}
+  ]
+}

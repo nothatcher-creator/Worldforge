@@ -1,0 +1,19 @@
+services:
+- type: web
+  name: worldforge-phase1
+  runtime: docker
+  plan: free
+  region: virginia
+  dockerfilePath: ./hosting/phase1/Dockerfile
+  healthCheckPath: /health
+  autoDeployTrigger: 'off'
+  envVars:
+  - key: WORLDFORGE_ENV
+    value: production
+  - key: WORLDFORGE_REQUIRE_POSTGRES
+    value: '1'
+  - key: WORLDFORGE_DATABASE_URL
+    sync: false
+  - key: WORLDFORGE_CONTENT_DIR
+    value: /app/content
+  dockerContext: ./hosting/phase1
