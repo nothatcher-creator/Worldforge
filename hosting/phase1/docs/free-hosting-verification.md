@@ -21,9 +21,16 @@
 ## Deployment still pending
 
 Render and Neon were discovered and offered for connection. The latest check
-reports both as uninstalled, so no free resources, source remote or public
-server address have been created. Account tier/billing settings and actual
-provider HTTPS/WebSocket/restart behavior must be checked once connected.
+reports both as uninstalled, so no hosting resources or public game-server
+address have been created. Account tier/billing settings and actual provider
+HTTPS/WebSocket/restart behavior must be checked once connected.
+
+Source is published in the user's existing `nothatcher-creator/Worldforge`
+repository on branch `worldforge-phase1-free-eba8f83`. Its original client uses
+a different package/version, so the tested server is isolated under
+`hosting/phase1/` and the branch's root Render blueprint targets that folder.
+All 28 published files were read back and matched against the prepared source.
+Existing repository files and main branch were preserved.
 
 The existing APK is unchanged. Its physical two-phone acceptance, geographic
 map rendering and actual-device performance gates remain open. No Phase 2
