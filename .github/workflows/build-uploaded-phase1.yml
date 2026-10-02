@@ -1,0 +1,77 @@
+name: Build Uploaded Worldforge Phase 1
+
+on:
+  push:
+    branches:
+      - uploaded-phase1-build-20261002
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Reconstruct uploaded Android source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat build-input/android-source.tar.xz.b64.* | base64 --decode > /tmp/worldforge-android.tar.xz
+          mkdir -p uploaded-phase1
+          tar -xJf /tmp/worldforge-android.tar.xz -C uploaded-phase1
+          test -f uploaded-phase1/android/settings.gradle.kts
+          test -f uploaded-phase1/android/app/build.gradle.kts
+          printf 'sdk.dir=%s\n' "$ANDROID_HOME" > uploaded-phase1/android/local.properties
+          find uploaded-phase1/android -maxdepth 3 -type f | sort
+
+      - name: Unit tests, lint, and debug APK
+        shell: bash
+        working-directory: uploaded-phase1/android
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+
+      - name: Verify and package APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="uploaded-phase1/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          mkdir -p dist
+          cp "$APK" dist/worldforge-phase1-debug.apk
+          sha256sum dist/worldforge-phase1-debug.apk | tee dist/worldforge-phase1-debug.apk.sha256
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/worldforge-phase1-debug.apk | tee dist/apk-signature.txt
+          unzip -t dist/worldforge-phase1-debug.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worldforge-phase1-debug-apk
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
